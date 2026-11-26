@@ -5,6 +5,7 @@ import threading
 import time
 import pytest
 from selenium import webdriver
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -92,9 +93,16 @@ def browser():
     driver.quit()
 
 
+def _click_and_wait_reload(browser, wait: WebDriverWait, element) -> None:
+    """Click a submit/navigation element and wait until the current document unloads."""
+    old_html = browser.find_element(By.TAG_NAME, "html")
+    element.click()
+    wait.until(EC.staleness_of(old_html))
+
+
 def test_suams_end_to_end_ui_journey(live_server_url, browser):
     """Verify login, student creation, course creation, notice publishing, and student login via browser."""
-    wait = WebDriverWait(browser, 10)
+    wait = WebDriverWait(browser, 10, ignored_exceptions=(StaleElementReferenceException,))
 
     # 1. Unauthenticated access redirects to login
     browser.get(f"{live_server_url}/dashboard")
@@ -103,7 +111,7 @@ def test_suams_end_to_end_ui_journey(live_server_url, browser):
     # 2. Invalid credentials show error alert
     browser.find_element(By.ID, "identifier").send_keys("ui_admin")
     browser.find_element(By.ID, "password").send_keys("WrongPass!")
-    browser.find_element(By.ID, "login-submit-btn").click()
+    _click_and_wait_reload(browser, wait, browser.find_element(By.ID, "login-submit-btn"))
     error_el = wait.until(EC.presence_of_element_located((By.ID, "login-error")))
     assert "Invalid" in error_el.text
 
@@ -112,10 +120,9 @@ def test_suams_end_to_end_ui_journey(live_server_url, browser):
     browser.find_element(By.ID, "identifier").send_keys("ui_admin")
     browser.find_element(By.ID, "password").clear()
     browser.find_element(By.ID, "password").send_keys("UiAdminPass!1")
-    browser.find_element(By.ID, "login-submit-btn").click()
+    _click_and_wait_reload(browser, wait, browser.find_element(By.ID, "login-submit-btn"))
 
-    role_badge = wait.until(EC.presence_of_element_located((By.ID, "current-user-role")))
-    assert role_badge.text.strip().upper() == "ADMIN"
+    wait.until(lambda d: d.find_element(By.ID, "current-user-role").text.strip().upper() == "ADMIN")
 
     # 4. Create a student via UI
     browser.get(f"{live_server_url}/students")
@@ -125,46 +132,45 @@ def test_suams_end_to_end_ui_journey(live_server_url, browser):
     browser.find_element(By.ID, "student-roll").send_keys("2103050")
     browser.find_element(By.ID, "student-email").send_keys("2103050@student.ruet.ac.bd")
     browser.find_element(By.ID, "student-password").send_keys("StudentUiPass!1")
-    browser.find_element(By.ID, "create-student-btn").click()
+    _click_and_wait_reload(browser, wait, browser.find_element(By.ID, "create-student-btn"))
 
-    table = wait.until(EC.presence_of_element_located((By.ID, "students-table")))
-    assert "2103050" in table.text
-    assert "Tariqul Islam" in table.text
+    wait.until(
+        lambda d: "2103050" in d.find_element(By.ID, "students-table").text
+        and "Tariqul Islam" in d.find_element(By.ID, "students-table").text
+    )
 
     # 5. Create a course via UI
     browser.get(f"{live_server_url}/courses")
     wait.until(EC.presence_of_element_located((By.ID, "create-course-form")))
     browser.find_element(By.ID, "course-code").send_keys("CSE 3206")
     browser.find_element(By.ID, "course-title").send_keys("Software Engineering Sessional")
-    browser.find_element(By.ID, "create-course-btn").click()
+    _click_and_wait_reload(browser, wait, browser.find_element(By.ID, "create-course-btn"))
 
-    course_table = wait.until(EC.presence_of_element_located((By.ID, "courses-table")))
-    assert "CSE 3206" in course_table.text
+    wait.until(lambda d: "CSE 3206" in d.find_element(By.ID, "courses-table").text)
 
     # 6. Publish a notice via UI
     browser.get(f"{live_server_url}/notices")
     wait.until(EC.presence_of_element_located((By.ID, "publish-notice-form")))
     browser.find_element(By.ID, "notice-title").send_keys("Project Defense Schedule")
     browser.find_element(By.ID, "notice-content").send_keys("CSE 3206 project defense starts at 9:30 AM.")
-    browser.find_element(By.ID, "publish-notice-btn").click()
-    assert "Project Defense Schedule" in browser.page_source
+    _click_and_wait_reload(browser, wait, browser.find_element(By.ID, "publish-notice-btn"))
+    wait.until(lambda d: "Project Defense Schedule" in d.page_source)
 
     # 7. Logout and log in as the newly created student
-    browser.find_element(By.ID, "logout-btn").click()
+    _click_and_wait_reload(browser, wait, browser.find_element(By.ID, "logout-btn"))
     wait.until(EC.presence_of_element_located((By.ID, "login-form")))
 
     browser.find_element(By.ID, "identifier").send_keys("std2103050")
     browser.find_element(By.ID, "password").send_keys("StudentUiPass!1")
-    browser.find_element(By.ID, "login-submit-btn").click()
+    _click_and_wait_reload(browser, wait, browser.find_element(By.ID, "login-submit-btn"))
 
-    student_badge = wait.until(EC.presence_of_element_located((By.ID, "current-user-role")))
-    assert student_badge.text.strip().upper() == "STUDENT"
+    wait.until(lambda d: d.find_element(By.ID, "current-user-role").text.strip().upper() == "STUDENT")
 
     # Student enrolls in CSE 3206 from UI and sees notice notification
     browser.get(f"{live_server_url}/courses")
     enroll_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "form[action*='enroll-self'] button")))
-    enroll_btn.click()
+    _click_and_wait_reload(browser, wait, enroll_btn)
     wait.until(lambda d: "Enrolled" in d.find_element(By.ID, "courses-table").text)
 
     browser.get(f"{live_server_url}/notices")
-    assert "Project Defense Schedule" in browser.page_source
+    wait.until(lambda d: "Project Defense Schedule" in d.page_source)

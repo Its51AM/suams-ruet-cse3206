@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}My Profile - SUAMS{% endblock %}
+{% block page_heading %}Student Profile{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="suams-card p-4">
+      <h6 class="fw-bold mb-3">Academic Identity</h6>
+      {% if student %}
+      <dl class="row mb-0 small">
+        <dt class="col-sm-4 text-muted">Full Name</dt>
+        <dd class="col-sm-8 fw-semibold">{{ user.full_name }}</dd>
+        <dt class="col-sm-4 text-muted">Roll Number</dt>
+        <dd class="col-sm-8">{{ student.roll_number }}</dd>
+        <dt class="col-sm-4 text-muted">Email</dt>
+        <dd class="col-sm-8">{{ user.email }}</dd>
+        <dt class="col-sm-4 text-muted">Department</dt>
+        <dd class="col-sm-8">{{ student.department }}</dd>
+        <dt class="col-sm-4 text-muted">Batch Year</dt>
+        <dd class="col-sm-8">{{ student.batch_year }}</dd>
+        <dt class="col-sm-4 text-muted">Semester</dt>
+        <dd class="col-sm-8">{{ student.current_semester }}</dd>
+        <dt class="col-sm-4 text-muted">Phone</dt>
+        <dd class="col-sm-8">{{ student.phone or "N/A" }}</dd>
+      </dl>
+      {% else %}
+      <p class="text-muted mb-0">No student profile linked to this account.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="suams-card p-4">
+      <h6 class="fw-bold mb-3">Registered Courses</h6>
+      {% if courses %}
+      <ul class="list-group list-group-flush small">
+        {% for course in courses %}
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+          <div>
+            <strong>{{ course.course_code }}</strong> &mdash; {{ course.title }}
+          </div>
+          <span class="badge bg-primary-subtle text-primary">{{ course.credits }} Credits</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted mb-0">You have not registered for any courses yet. <a href="/courses">Browse Courses</a>.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

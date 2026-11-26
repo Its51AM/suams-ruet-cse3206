@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Students - SUAMS{% endblock %}
+{% block page_heading %}Student Management{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  {% if user.role == 'admin' %}
+  <div class="col-lg-4">
+    <div class="suams-card p-4">
+      <h6 class="fw-bold mb-3">Register New Student</h6>
+      <form method="post" action="/students/create" id="add-student-form">
+        <div class="mb-2">
+          <label class="form-label small fw-medium">Full Name</label>
+          <input type="text" name="full_name" id="student-full-name" class="form-control form-control-sm" required />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label small fw-medium">Username</label>
+            <input type="text" name="username" id="student-username" class="form-control form-control-sm" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-medium">Roll Number</label>
+            <input type="text" name="roll_number" id="student-roll" class="form-control form-control-sm" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-medium">Email</label>
+          <input type="email" name="email" id="student-email" class="form-control form-control-sm" required />
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-medium">Password</label>
+          <input type="password" name="password" id="student-password" class="form-control form-control-sm" minlength="6" required />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-4">
+            <label class="form-label small fw-medium">Dept</label>
+            <input type="text" name="department" id="student-dept" class="form-control form-control-sm" value="CSE" required />
+          </div>
+          <div class="col-4">
+            <label class="form-label small fw-medium">Batch</label>
+            <input type="number" name="batch_year" id="student-batch" class="form-control form-control-sm" value="2021" required />
+          </div>
+          <div class="col-4">
+            <label class="form-label small fw-medium">Semester</label>
+            <input type="number" name="current_semester" id="student-semester" class="form-control form-control-sm" min="1" max="12" value="6" required />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-medium">Phone (Optional)</label>
+          <input type="text" name="phone" class="form-control form-control-sm" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm w-100" id="create-student-btn">Add Student</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="{% if user.role == 'admin' %}col-lg-8{% else %}col-12{% endif %}">
+    <div class="suams-card p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h6 class="fw-bold mb-0">Student Directory</h6>
+        <form method="get" action="/students" class="d-flex gap-2">
+          <input type="text" name="search" value="{{ search or '' }}" class="form-control form-control-sm" placeholder="Search roll or name..." />
+          <input type="text" name="department" value="{{ department or '' }}" class="form-control form-control-sm" placeholder="Dept (e.g. CSE)" style="max-width: 120px;" />
+          <button type="submit" class="btn btn-outline-primary btn-sm">Filter</button>
+        </form>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle small" id="students-table">
+          <thead class="table-light">
+            <tr>
+              <th>Roll No</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Dept</th>
+              <th>Batch</th>
+              <th>Sem</th>
+              {% if user.role == 'admin' %}<th>Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td class="fw-semibold">{{ s.roll_number }}</td>
+              <td>{{ s.user.full_name }}</td>
+              <td>{{ s.user.email }}</td>
+              <td>{{ s.department }}</td>
+              <td>{{ s.batch_year }}</td>
+              <td>
+                {% if user.role == 'admin' %}
+                <form method="post" action="/students/{{ s.id }}/update" class="d-flex gap-1 align-items-center">
+                  <input type="number" name="current_semester" value="{{ s.current_semester }}" min="1" max="12" class="form-control form-control-sm" style="width: 65px;" />
+                  <button type="submit" class="btn btn-outline-secondary btn-sm">Save</button>
+                </form>
+                {% else %}
+                {{ s.current_semester }}
+                {% endif %}
+              </td>
+              {% if user.role == 'admin' %}
+              <td>
+                <form method="post" action="/students/{{ s.id }}/delete" class="m-0">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                </form>
+              </td>
+              {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">No students found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

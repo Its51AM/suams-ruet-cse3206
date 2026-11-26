@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}SUAMS - Smart University Academic Management System{% endblock %}</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+{% if user %}
+<div class="suams-shell">
+  <aside class="suams-sidebar">
+    <a href="/dashboard" class="suams-brand">SUAMS &middot; RUET</a>
+    <nav class="nav flex-column">
+      <a href="/dashboard" class="suams-nav-link {% if active_page == 'dashboard' %}active{% endif %}">Dashboard</a>
+      {% if user.role in ['admin', 'teacher'] %}
+      <a href="/students" class="suams-nav-link {% if active_page == 'students' %}active{% endif %}">Students</a>
+      {% else %}
+      <a href="/profile" class="suams-nav-link {% if active_page == 'profile' %}active{% endif %}">My Profile</a>
+      {% endif %}
+      <a href="/courses" class="suams-nav-link {% if active_page == 'courses' %}active{% endif %}">Courses</a>
+      <a href="/attendance" class="suams-nav-link {% if active_page == 'attendance' %}active{% endif %}">Attendance</a>
+      <a href="/results" class="suams-nav-link {% if active_page == 'results' %}active{% endif %}">Results &amp; Grades</a>
+      <a href="/notices" class="suams-nav-link {% if active_page == 'notices' %}active{% endif %}">Notices &amp; Alerts</a>
+    </nav>
+    <div class="mt-auto pt-3 border-top border-light border-opacity-25 small text-white-50">
+      CSE 3206 Software Engineering
+    </div>
+  </aside>
+
+  <div class="suams-main">
+    <header class="suams-topbar">
+      <div>
+        <h5 class="mb-0 fw-semibold">{% block page_heading %}Academic Portal{% endblock %}</h5>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge bg-primary text-uppercase" id="current-user-role">{{ user.role }}</span>
+        <span class="fw-medium" id="current-user-name">{{ user.full_name }}</span>
+        <form method="post" action="/logout" class="m-0">
+          <button type="submit" class="btn btn-outline-danger btn-sm" id="logout-btn">Logout</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="suams-content">
+      <div id="suams-alert-region">
+        {% if flash_message %}
+        <div class="alert alert-{{ flash_variant or 'success' }} alert-dismissible fade show" role="alert">
+          {{ flash_message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+      </div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% else %}
+  {% block public_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

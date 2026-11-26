@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Results &amp; Grades - SUAMS{% endblock %}
+{% block page_heading %}Results &amp; Grade Management{% endblock %}
+
+{% block content %}
+{% if user.role in ['admin', 'teacher'] %}
+<div class="suams-card p-4 mb-4">
+  <form method="get" action="/results" class="row g-3 align-items-end">
+    <div class="col-md-6">
+      <label class="form-label small fw-medium">Select Course</label>
+      <select name="course_id" class="form-select form-select-sm" required>
+        {% for c in courses %}
+        <option value="{{ c.id }}" {% if selected_course and c.id == selected_course.id %}selected{% endif %}>
+          {{ c.course_code }} - {{ c.title }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-outline-primary btn-sm w-100">Load Grading Sheet</button>
+    </div>
+  </form>
+</div>
+
+{% if selected_course %}
+<div class="suams-card p-4">
+  <h6 class="fw-bold mb-3">Publish Marks: {{ selected_course.course_code }}</h6>
+  {% if roster %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Roll No</th>
+          <th>Student</th>
+          <th>Marks (0-100)</th>
+          <th>Grade</th>
+          <th>GP</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in roster %}
+        {% set existing = result_map.get(student.id) %}
+        <tr>
+          <td class="fw-semibold">{{ student.roll_number }}</td>
+          <td>{{ student.user.full_name }}</td>
+          <td colspan="4">
+            <form method="post" action="/results/publish" class="d-flex align-items-center gap-3">
+              <input type="hidden" name="course_id" value="{{ selected_course.id }}" />
+              <input type="hidden" name="student_id" value="{{ student.id }}" />
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="100"
+                name="marks"
+                value="{{ existing.marks if existing else '' }}"
+                class="form-control form-control-sm"
+                style="max-width: 110px;"
+                required
+              />
+              <span class="badge bg-primary-subtle text-primary">{{ existing.letter_grade if existing else '-' }}</span>
+              <span class="small text-muted">{{ "%.2f"|format(existing.grade_point) if existing else '-' }}</span>
+              <button type="submit" class="btn btn-primary btn-sm">Publish</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No students enrolled in this course yet.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="suams-card kpi-card p-3">
+      <div class="text-muted small">Completed Credits</div>
+      <div class="fs-4 fw-bold">{{ transcript.total_credits }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="suams-card kpi-card p-3">
+      <div class="text-muted small">Weighted GPA</div>
+      <div class="fs-4 fw-bold text-primary">{{ "%.2f"|format(transcript.gpa) }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="suams-card p-4">
+  <h6 class="fw-bold mb-3">Published Grade Sheet</h6>
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Code</th>
+          <th>Course Title</th>
+          <th>Credits</th>
+          <th>Marks</th>
+          <th>Grade</th>
+          <th>Grade Point</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for res in transcript.results %}
+        <tr>
+          <td class="fw-semibold">{{ res.course.course_code if res.course else "" }}</td>
+          <td>{{ res.course.title if res.course else "" }}</td>
+          <td>{{ res.course.credits if res.course else "" }}</td>
+          <td>{{ res.marks }}</td>
+          <td><span class="badge bg-primary">{{ res.letter_grade }}</span></td>
+          <td>{{ "%.2f"|format(res.grade_point) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-3">No results published yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Login - SUAMS{% endblock %}
+
+{% block public_content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="text-center mb-4">
+      <span class="badge bg-primary-subtle text-primary px-3 py-2 mb-2">RUET &middot; CSE 3206</span>
+      <h3 class="fw-bold mb-1">SUAMS Portal</h3>
+      <p class="text-muted small mb-0">Smart University Academic Management System</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert" id="login-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/login" id="login-form">
+      <div class="mb-3">
+        <label for="identifier" class="form-label fw-medium">Username or Email</label>
+        <input
+          type="text"
+          class="form-control"
+          id="identifier"
+          name="identifier"
+          placeholder="e.g. admin or 2103001@student.ruet.ac.bd"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label for="password" class="form-label fw-medium">Password</label>
+        <input
+          type="password"
+          class="form-control"
+          id="password"
+          name="password"
+          placeholder="Enter your password"
+          required
+        />
+      </div>
+      <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" id="login-submit-btn">
+        Sign In
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

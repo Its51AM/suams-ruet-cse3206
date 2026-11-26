@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Courses - SUAMS{% endblock %}
+{% block page_heading %}Course &amp; Enrollment Management{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  {% if user.role == 'admin' %}
+  <div class="col-lg-4">
+    <div class="suams-card p-4 mb-4">
+      <h6 class="fw-bold mb-3">Create Course</h6>
+      <form method="post" action="/courses/create" id="create-course-form">
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label small fw-medium">Course Code</label>
+            <input type="text" name="course_code" id="course-code" class="form-control form-control-sm" placeholder="CSE 3206" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-medium">Credits</label>
+            <input type="number" step="0.5" name="credits" id="course-credits" class="form-control form-control-sm" value="3.0" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-medium">Title</label>
+          <input type="text" name="title" id="course-title" class="form-control form-control-sm" required />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label small fw-medium">Department</label>
+            <input type="text" name="department" class="form-control form-control-sm" value="CSE" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-medium">Semester</label>
+            <input type="number" name="semester" class="form-control form-control-sm" min="1" max="12" value="6" required />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-medium">Assign Teacher</label>
+          <select name="teacher_id" class="form-select form-select-sm">
+            <option value="">-- Unassigned --</option>
+            {% for t in teachers %}
+            <option value="{{ t.id }}">{{ t.user.full_name }} ({{ t.employee_id }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm w-100" id="create-course-btn">Create Course</button>
+      </form>
+    </div>
+
+    <div class="suams-card p-4 mb-4">
+      <h6 class="fw-bold mb-3">Enroll Student</h6>
+      <form method="post" action="/courses/enroll">
+        <div class="mb-2">
+          <label class="form-label small fw-medium">Course</label>
+          <select name="course_id" class="form-select form-select-sm" required>
+            {% for c in courses %}
+            <option value="{{ c.id }}">{{ c.course_code }} - {{ c.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-medium">Student</label>
+          <select name="student_id" class="form-select form-select-sm" required>
+            {% for s in students %}
+            <option value="{{ s.id }}">{{ s.roll_number }} - {{ s.user.full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-outline-primary btn-sm w-100">Enroll Student</button>
+      </form>
+    </div>
+
+    <div class="suams-card p-4">
+      <h6 class="fw-bold mb-3">Register Teacher</h6>
+      <form method="post" action="/courses/teachers/create">
+        <div class="mb-2">
+          <label class="form-label small fw-medium">Full Name</label>
+          <input type="text" name="full_name" class="form-control form-control-sm" required />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label small fw-medium">Username</label>
+            <input type="text" name="username" class="form-control form-control-sm" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-medium">Employee ID</label>
+            <input type="text" name="employee_id" class="form-control form-control-sm" required />
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-medium">Email</label>
+          <input type="email" name="email" class="form-control form-control-sm" required />
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label small fw-medium">Department</label>
+            <input type="text" name="department" class="form-control form-control-sm" value="CSE" required />
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-medium">Designation</label>
+            <input type="text" name="designation" class="form-control form-control-sm" value="Lecturer" required />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-medium">Password</label>
+          <input type="password" name="password" class="form-control form-control-sm" minlength="6" required />
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm w-100">Add Teacher</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="{% if user.role == 'admin' %}col-lg-8{% else %}col-12{% endif %}">
+    <div class="suams-card p-4">
+      <h6 class="fw-bold mb-3">
+        {% if user.role == 'teacher' %}My Assigned Courses{% else %}Course Catalog{% endif %}
+      </h6>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle small" id="courses-table">
+          <thead class="table-light">
+            <tr>
+              <th>Code</th>
+              <th>Title</th>
+              <th>Credits</th>
+              <th>Sem</th>
+              <th>Teacher</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in courses %}
+            <tr>
+              <td class="fw-semibold">{{ c.course_code }}</td>
+              <td>{{ c.title }}</td>
+              <td>{{ c.credits }}</td>
+              <td>{{ c.semester }}</td>
+              <td>{{ c.teacher.user.full_name if c.teacher and c.teacher.user else "Unassigned" }}</td>
+              <td>
+                {% if user.role == 'student' %}
+                  {% if c.id in enrolled_course_ids %}
+                    <span class="badge bg-success">Enrolled</span>
+                  {% else %}
+                    <form method="post" action="/courses/{{ c.id }}/enroll-self" class="m-0">
+                      <button type="submit" class="btn btn-primary btn-sm">Enroll</button>
+                    </form>
+                  {% endif %}
+                {% elif user.role == 'admin' %}
+                  <form method="post" action="/courses/{{ c.id }}/delete" class="m-0">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                  </form>
+                {% else %}
+                  <a href="/attendance?course_id={{ c.id }}" class="btn btn-outline-primary btn-sm">Attendance</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">No courses available.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

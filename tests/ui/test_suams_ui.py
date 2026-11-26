@@ -5,7 +5,7 @@ import threading
 import time
 import pytest
 from selenium import webdriver
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import StaleElementReferenceException, WebDriverException
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -94,15 +94,25 @@ def browser():
 
 
 def _click_and_wait_reload(browser, wait: WebDriverWait, element) -> None:
-    """Click a submit/navigation element and wait until the current document unloads."""
+    """Click a submit/navigation element and wait until the new document finishes loading."""
     old_html = browser.find_element(By.TAG_NAME, "html")
     element.click()
-    wait.until(EC.staleness_of(old_html))
+
+    def _reloaded(driver) -> bool:
+        try:
+            _ = old_html.tag_name
+            return False
+        except (StaleElementReferenceException, WebDriverException):
+            return driver.execute_script("return document.readyState") == "complete"
+
+    wait.until(_reloaded)
 
 
 def test_suams_end_to_end_ui_journey(live_server_url, browser):
     """Verify login, student creation, course creation, notice publishing, and student login via browser."""
-    wait = WebDriverWait(browser, 10, ignored_exceptions=(StaleElementReferenceException,))
+    wait = WebDriverWait(
+        browser, 10, ignored_exceptions=(StaleElementReferenceException, WebDriverException)
+    )
 
     # 1. Unauthenticated access redirects to login
     browser.get(f"{live_server_url}/dashboard")
